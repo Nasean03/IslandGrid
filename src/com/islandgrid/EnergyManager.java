@@ -7,17 +7,21 @@ public class EnergyManager {
     private int energyDemand;
     private int pollutionLevel;
     private int batteryLevel;
+    private int batteryCapacity; 
     private boolean powerCrisis;
     private boolean overcharged;
-    private int batteryCapacity; 
     private Grid grid;
     private GameView gameView;
     private boolean pollutionLevelHigh;
 
+    private int demandCounter = 0;     // counts how often to update demand
+    //private double demandBase = 70;     
+    //private double demandElasticity = 0.4; // how strongly demand reacts to supply
 
+    private static final int DEMAND_UPDATE_INTERVAL = 1;  
+    private static final int DEMAND_MIN = 40;
     private static final int MAX_BATTERY_LEVEL = 150;
     private static final int POLLUTION_THRESHOLD = 100;
-    private static final int MAX_SAFE_BATTERY = 120;
 
     public EnergyManager() {
         this. energySupply = 50;
@@ -42,41 +46,40 @@ public class EnergyManager {
     public void addSupply(String type) {
         System.out.println("addSupply() called on EnergyManager instance: " + System.identityHashCode(this));
         type = type.toLowerCase();
+        double efficiency = 1.0 - (pollutionLevel / 100.0) * 0.3; // up to -30% efficiency loss
 
-
-          switch (type) {
+        switch (type) {
             case "solar":
-                energySupply += 10;
-                batteryLevel += 5;
+                energySupply += (int)(10 * efficiency);
+                batteryLevel += (int)(5 * efficiency);
                 break;
-                
-            
+
             case "wind":
-                energySupply += 8;
-                batteryLevel += 3;
+                energySupply += (int)(8 * efficiency);
+                batteryLevel += (int)(3 * efficiency);
                 break;
-               
 
             case "hydro":
-                energySupply += 12;
-                batteryLevel += 4;
+                energySupply += (int)(12 * efficiency);
+                batteryLevel += (int)(4 * efficiency);
                 break;
-                
+
             case "battery":
                 batteryCapacity += 10;
-                batteryLevel = batteryLevel + 20; 
+                batteryLevel += 20;
                 break;
-              
+
             case "fossil":
-                 energySupply += 15;
+                energySupply += 15;
                 pollutionLevel += 15;
-                break;       
+                break;
         }
 
-        energySupply = Math.min(energySupply, 150);
+        energySupply = Math.min(energySupply, 300);
         batteryLevel = Math.min(batteryLevel, batteryCapacity); 
         pollutionLevel = Math.min(pollutionLevel, POLLUTION_THRESHOLD); //sff function to check max pollution level,will make the board get darker later.
 
+        
         checkCrisis();
         checkOvercharged();
 
@@ -87,20 +90,22 @@ public class EnergyManager {
     }
 
     private void checkCrisis() {
-        if(energySupply + batteryLevel < energyDemand) {
-            powerCrisis = true;
-        } else {
-            powerCrisis = false;
-        }
-    }//checks if you are in a power crisis (under power demand)
+        int deficit = energyDemand - (energySupply + batteryLevel);
+        powerCrisis = deficit > 10; 
+    }
 
-     private void checkOvercharged() {
-        if(batteryLevel > (batteryCapacity-30) && energySupply > energyDemand + 20) {
-            overcharged = true;
+    private int overchargeCounter = 0;
+
+    private void checkOvercharged() {
+        if(batteryLevel > (batteryCapacity * 0.9) && energySupply > energyDemand) {
+           overchargeCounter++;
+           if(overchargeCounter > 5)
+                overcharged = true;
+
             //add logic to reduce battery level gradually
             if(batteryLevel >= batteryCapacity-5){
                 batteryLevel -= 5;
-                batteryCapacity -= 2;
+                batteryCapacity = Math.max(batteryCapacity - 2, 50);
             }
 
             //add small possibility of system blackout alotheher
@@ -108,6 +113,7 @@ public class EnergyManager {
                 triggerBlackout();
             }
         } else {
+            overchargeCounter = 0;
             overcharged = false;
         }
     } // checks if you have exceeded safe energy levels
@@ -123,8 +129,39 @@ public class EnergyManager {
     public boolean isPollutionLevelHigh() { return pollutionLevelHigh; }
 
     public void DemandChange() {
-        int change = (int)(Math.random() * 21) - 10; // Random change between -10 and +10
-        energyDemand = Math.max(0, energyDemand + change); // Ensure demand doesn't go negative
+        demandCounter++;
+        if (demandCounter < DEMAND_UPDATE_INTERVAL) return;
+        demandCounter = 0;
+
+        // Pollution penalty - slows expansion up to 40%
+        double pollutionPenalty = 1.0 - ((pollutionLevel / 100.0) * 0.4);
+
+        // Nonlinear growth - demand grows faster as supply scales up
+        double supplyInfluence = Math.pow(energySupply / 100.0, 1.2); // >1 = accelerating curve
+        double baseGrowth = 10 * supplyInfluence * pollutionPenalty;  // stronger baseline increase
+
+        // Minor influence from battery capacity (industrial stability)
+        baseGrowth += (batteryCapacity / 50.0);
+
+        // Randomness to keep things organic
+        double randomness = (Math.random() * 6) - 3; // -3 to +3
+        baseGrowth += randomness;
+
+        // Smoothly transition toward new higher demand
+        double targetDemand = energyDemand + baseGrowth;
+        energyDemand += (targetDemand - energyDemand) * 0.6;
+
+        // Occasional surge (industrial boom)
+        if (Math.random() < 0.1) {
+            int spike = (int)(Math.random() * 20) + 10; // +10–30
+            energyDemand += spike;
+        }
+
+        // Prevent negative or runaway values
+        energyDemand = Math.max(DEMAND_MIN, energyDemand);
+        energyDemand = Math.min(energyDemand, 400); // soft cap for UI scale
+        energyDemand = (int)Math.round(energyDemand);
+
         checkCrisis();
         checkOvercharged();
     }

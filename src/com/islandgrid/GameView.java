@@ -28,7 +28,7 @@ public class GameView {
 
 
     public void start(Stage stage) {
-        canvas = new Canvas(GRID_WIDTH * TILE_SIZE, GRID_HEIGHT * TILE_SIZE);
+        canvas = new Canvas(GRID_WIDTH * TILE_SIZE + 300, GRID_HEIGHT * TILE_SIZE);
         gc = canvas.getGraphicsContext2D();
 
         energyManager = new EnergyManager();
@@ -44,7 +44,7 @@ public class GameView {
       
         Group root = new Group();
         root.getChildren().add(canvas);
-        Scene scene = new Scene(root, GRID_WIDTH * TILE_SIZE, GRID_HEIGHT * TILE_SIZE, Color.DARKSLATEGRAY);
+        Scene scene = new Scene(root, GRID_WIDTH * TILE_SIZE + 300, GRID_HEIGHT * TILE_SIZE, Color.WHEAT);
         stage.setScene(scene);
         stage.setTitle("Island Grid - Renewable Puzzle");
         stage.show();
@@ -182,26 +182,100 @@ public class GameView {
     }
 
     private void drawHUD(GraphicsContext gc) {
-        gc.setFill(Color.BLACK);
-        gc.setFont(new Font("Verdana", 12));
-        gc.fillText("Energy Supply: " + energyManager.getEnergySupply(), 10, 20);
-        gc.fillText("Energy Demand: " + energyManager.getEnergyDemand(), 10, 40);
-        gc.fillText("Battery Level: " + energyManager.getBatteryLevel(), 10, 60);
-        gc.fillText("Battery Capacity: " + energyManager.getBatteryCapacity(), 10, 80);
-        gc.fillText("Pollution Level: " + energyManager.getPollutionLevel(), 10, 100);
+        // Clear HUD background area
+        gc.setFill(Color.WHEAT); // or whatever your main background color is
+        gc.fillRect(GRID_WIDTH * TILE_SIZE, 0, 300, GRID_HEIGHT * TILE_SIZE);
+        double barWidth = 200;
+        double barX = GRID_WIDTH * TILE_SIZE + 50; // places it beside grid
+        double baseY = 300;
 
+        gc.setFill(Color.BLACK);
+        gc.setFont(new Font("Verdana", 20));
+        gc.fillText("ISLAND GRID STATUS:", barX, baseY-30);
+
+        gc.setFont(new Font("Verdana", 12));
+
+        // === Energy Supply Bar ===
+        gc.setFill(Color.BLACK);
+        gc.fillText("Energy Supply", barX, baseY - 5);
+        gc.setFill(Color.GRAY);
+        gc.fillRect(barX, baseY, barWidth, 15);
+
+        double supplyRatio = energyManager.getEnergySupply() / 150.0;
+        if (energyManager.getEnergySupply() > energyManager.getEnergyDemand() + 20) {
+            gc.setFill(Color.RED);
+        } else {
+            gc.setFill(Color.ORANGE);
+        }
+        gc.fillRect(barX, baseY, Math.min(supplyRatio * barWidth, barWidth), 15);
+
+        gc.setFill(Color.BLACK);
+        gc.fillText(String.format("%d", energyManager.getEnergySupply()), barX + barWidth + 10, baseY + 12);
+
+
+        // === Energy Demand Bar ===
+        gc.setFill(Color.BLACK);
+        gc.fillText("Energy Demand", barX, baseY + 40);
+        gc.setFill(Color.GRAY);
+        gc.fillRect(barX, baseY + 45, barWidth, 15);
+
+       // double supply = energyManager.getEnergySupply();
+        double demandRatio = energyManager.getEnergyDemand() / 300.0;
+        gc.setFill(Color.LIGHTBLUE);
+        gc.fillRect(barX, baseY + 45, Math.min(demandRatio * barWidth, barWidth), 15);
+
+        gc.setFill(Color.BLACK);
+        gc.fillText(String.format("%d", energyManager.getEnergyDemand()), barX + barWidth + 10, baseY + 57);
+
+
+        // === Battery Bar ===
+        gc.setFill(Color.BLACK);
+        gc.fillText("Battery Level", barX, baseY + 80);
+        gc.setFill(Color.GRAY);
+        gc.fillRect(barX, baseY + 85, barWidth, 15);
+
+        double batteryRatio = energyManager.getBatteryLevel() / (double) energyManager.getBatteryCapacity();
+        if (batteryRatio > 0.85) {
+            gc.setFill(Color.RED);   // overcharged
+        } else if (batteryRatio < 0.15) {
+            gc.setFill(Color.YELLOW); // low
+        } else {
+            gc.setFill(Color.GREEN);  // healthy
+        }
+        gc.fillRect(barX, baseY + 85, Math.min(batteryRatio * barWidth, barWidth), 15);
+
+        gc.setFill(Color.WHITE);
+        gc.fillText(String.format("%d / %d", energyManager.getBatteryLevel(),
+        energyManager.getBatteryCapacity()), barX + barWidth - 60, baseY + 97);
+
+
+        // === Pollution Bar ===
+        gc.setFill(Color.BLACK);
+        gc.fillText("Pollution Level", barX, baseY + 120);
+        gc.setFill(Color.GRAY);
+        gc.fillRect(barX, baseY + 125, barWidth, 15);
+
+        double pollutionRatio = energyManager.getPollutionLevel() / 100.0;
+        gc.setFill(Color.BLACK);
+        gc.fillRect(barX, baseY + 125, Math.min(pollutionRatio * barWidth, barWidth), 15);
+
+        gc.setFill(Color.BLACK);
+        gc.fillText(String.format("%.0f%%", pollutionRatio * 100), barX + barWidth + 10, baseY + 137);
+
+
+        // === Alerts ===
         if (energyManager.isPowerCrisis()) {
             gc.setFill(Color.RED);
-            gc.fillText("Power Crisis!", 10, 120);
+            gc.fillText("⚠️ Power Crisis!", barX, baseY + 170);
         }
         if (energyManager.isOvercharged()) {
             gc.setFill(Color.RED);
-            gc.fillText("Overcharged!", 10, 140);
+            gc.fillText("⚡ Overcharged!", barX, baseY + 190);
         }
     }
 
     private void draw() {
-        gc.setFill(Color.rgb(245, 218, 191)); 
+        gc.setFill(Color.WHEAT); 
         gc.fillRect(0, 0, GRID_WIDTH * TILE_SIZE, GRID_HEIGHT * TILE_SIZE);
 
         grid.draw(gc);
@@ -218,7 +292,7 @@ public class GameView {
                         int drawY = (currentPiece.getY() + i) * TILE_SIZE;
                         gc.fillRect(drawX, drawY, TILE_SIZE, TILE_SIZE);
                         gc.setStroke(Color.BLACK);
-                          gc.strokeRect(drawX, drawY, TILE_SIZE, TILE_SIZE);
+                        gc.strokeRect(drawX, drawY, TILE_SIZE, TILE_SIZE);
                     }
                 }
             }
@@ -230,9 +304,12 @@ public class GameView {
     private void drawNextPiece(GraphicsContext gc) {
         if (nextPiece == null) return;
 
+        double panelX = GRID_WIDTH * TILE_SIZE + 50;
+        double panelY = 40; // top of HUD area
+
         gc.setFill(Color.BLACK);
         gc.setFont(new Font("Verdana", 20));
-        gc.fillText("Next Piece:", GRID_WIDTH * TILE_SIZE - 160, 40);
+        gc.fillText("Next Piece:", panelX, panelY);
 
         int[][] shape = nextPiece.getShape();
         gc.setFill(nextPiece.getColor());
@@ -240,8 +317,8 @@ public class GameView {
         for (int i = 0; i < shape.length; i++) {
             for (int j = 0; j < shape[i].length; j++) {
                 if (shape[i][j] == 1) {
-                    int drawX = GRID_WIDTH * TILE_SIZE - 160 + j * TILE_SIZE;
-                    int drawY = 60 + i * TILE_SIZE;
+                    int drawX = (int) (panelX + j * TILE_SIZE);
+                    int drawY = (int) (panelY + 20 + i * TILE_SIZE);
                     gc.fillRect(drawX, drawY, TILE_SIZE, TILE_SIZE);
                     gc.setStroke(Color.BLACK);
                     gc.strokeRect(drawX, drawY, TILE_SIZE, TILE_SIZE);

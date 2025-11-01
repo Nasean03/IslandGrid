@@ -90,10 +90,13 @@ public class Grid {
             }
         }//enfor
 
-        gc.setFill(Color.rgb(0, 0, 0, darknessLevel));
+        gc.setFill(new Color(0.35, 0.28, 0.1, darknessLevel));
         gc.fillRect(0, 0, cols * TILE_SIZE, rows * TILE_SIZE);
 
         if (showGameOverMessage) {
+             gc.setFill(Color.rgb(255, 200, 200));
+            gc.setFont(new Font("Verdana", 30));
+            gc.fillText("GAME OVER - BLACKOUT", TILE_SIZE * 5-1, TILE_SIZE * 7-1);
             gc.setFill(Color.RED);
             gc.setFont(new Font("Verdana", 30));
             gc.fillText("GAME OVER - BLACKOUT", TILE_SIZE * 5, TILE_SIZE * 7);
