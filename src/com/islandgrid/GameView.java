@@ -6,6 +6,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.animation.AnimationTimer;
+import com.islandgrid.Audio;
 //import javafx.scene.input.KeyCode;
 
 
@@ -18,20 +19,28 @@ public class GameView {
     private boolean gameOver = false;
     private EnergyManager energyManager;
     private boolean paused = false;
+    private Weather weather;
+    private Weather.Condition lastWeather = null;
+    private String currentUser = "Guest";
+
+
 
     private static final int TILE_SIZE = 40; // size of one grid cell
     private static final int GRID_WIDTH = 20; 
     private static final int GRID_HEIGHT = 15;
+    private static final int SIDE_PANEL_WIDTH = 250;
 
     private long lastFallTime = 0;
     private long fallInterval = 500_000_000; // nanoseconds = 0.5s
 
 
     public void start(Stage stage) {
-        canvas = new Canvas(GRID_WIDTH * TILE_SIZE + 300, GRID_HEIGHT * TILE_SIZE);
+        double totalWidth = SIDE_PANEL_WIDTH + GRID_WIDTH * TILE_SIZE + SIDE_PANEL_WIDTH;
+        canvas = new Canvas(totalWidth, GRID_HEIGHT * TILE_SIZE);
         gc = canvas.getGraphicsContext2D();
 
         energyManager = new EnergyManager();
+        weather = new Weather();
         //System.out.println("Created EnergyManager instance in GameView: " + System.identityHashCode(energyManager));
         grid = new Grid(GRID_HEIGHT, GRID_WIDTH, energyManager, this);
         energyManager.setGrid(grid);
@@ -44,12 +53,15 @@ public class GameView {
       
         Group root = new Group();
         root.getChildren().add(canvas);
-        Scene scene = new Scene(root, GRID_WIDTH * TILE_SIZE + 300, GRID_HEIGHT * TILE_SIZE, Color.WHEAT);
+        Scene scene = new Scene(root, totalWidth, GRID_HEIGHT * TILE_SIZE, Color.WHEAT);
         stage.setScene(scene);
         stage.setTitle("Island Grid - Renewable Puzzle");
         stage.show();
 
-      new AnimationTimer() {
+        // Start background music
+        Audio.playMusic("game.mp3", true);
+
+        new AnimationTimer() {
             @Override
             public void handle(long now) {
                 // Auto fall
@@ -57,10 +69,17 @@ public class GameView {
                     update();
                     lastFallTime = now;
                 }
+               if (!gameOver && !paused) {
+                    weather.update();
+                    if (weather.getCurrent() != lastWeather) {
+                        lastWeather = weather.getCurrent();
+                        playWeatherSound(lastWeather);
+                    }
+                }
                 draw();
             }
         }.start();
-    
+
 
         //input handling
         scene.setOnKeyPressed(event -> {
@@ -70,22 +89,29 @@ public class GameView {
                 case LEFT:
                     if (grid.canMove(currentPiece, currentPiece.getX() - 1, currentPiece.getY())) {
                         currentPiece.moveLeft();
+                        Audio.playEffect("move.wav");
+
                     }
                     break;
 
                 case RIGHT:
                     if (grid.canMove(currentPiece, currentPiece.getX() + 1, currentPiece.getY())) {
                         currentPiece.moveRight();
+                        Audio.playEffect("move.wav");
+
                     }
                     break;
 
                 case DOWN:
                     if (grid.canMove(currentPiece, currentPiece.getX(), currentPiece.getY() + 1)) {
                         currentPiece.moveDown();
+                        Audio.playEffect("move.wav");
+
                     }
                     break;
 
                 case UP:
+                   Audio.playEffect("rotate.wav");
                     currentPiece.rotateClockWise();
                     if (!grid.canMove(currentPiece, currentPiece.getX(), currentPiece.getY())) {
                         currentPiece.rotateAntiClockwise(); // undo if invalid
@@ -94,6 +120,7 @@ public class GameView {
                 
                 case Z:  // press Z for anticlockwise rotation
                     currentPiece.rotateAntiClockwise(); // first, rotate 90° anticlockwise
+                    Audio.playEffect("rotate.wav");
                     if (!grid.canMove(currentPiece, currentPiece.getX(), currentPiece.getY())) {
                         currentPiece.rotateClockWise(); // undo if invalid
                     }
@@ -105,6 +132,16 @@ public class GameView {
 
                 case R:   // <-- Reset the game when 'R' is pressed
                     resetGame();
+                    break;
+
+                case M:
+                    if (Audio.getMusicVolume() > 0) {
+                        Audio.setMusicVolume(0);
+                        Audio.setEffectVolume(0);
+                    } else {
+                        Audio.setMusicVolume(0.3);
+                        Audio.setEffectVolume(0.2);
+                    }
                     break;
 
                 default:
@@ -123,6 +160,8 @@ public class GameView {
         energyManager.setGrid(grid);
         energyManager.setGameView(this);
         energyManager.resetPollution();
+        Audio.playMusic("game.mp3", true);
+
     }
 
     private void spawnPiece() {
@@ -162,8 +201,9 @@ public class GameView {
         if (grid.canMove(currentPiece, currentPiece.getX(), currentPiece.getY() + 1)) {
             currentPiece.moveDown();
         } else {
+            Audio.playEffect("lock.wav");
             grid.lockPiece(currentPiece);
-            energyManager.addSupply(currentPiece.getType());
+            energyManager.addSupply(currentPiece.getType(), weather);
             energyManager.DemandChange();
             energyManager.pollutionAlert();
 
@@ -181,16 +221,96 @@ public class GameView {
         }
     }
 
+    private void playWeatherSound(Weather.Condition condition) {
+        switch (condition) {
+            case SUNNY:
+                Audio.playEffect("birds.wav");
+                break;
+            case WINDY:
+                Audio.playEffect("gusts.wav");
+                break;
+            case RAINY:
+                Audio.playEffect("rain.wav");
+                break;
+            case CLOUDY:
+                Audio.playEffect("lowwind.wav");
+                break;
+        }
+    }
+
+    private void drawWeatherHUD(GraphicsContext gc) {
+        double panelWidth = SIDE_PANEL_WIDTH;
+        double panelHeight = GRID_HEIGHT * TILE_SIZE;
+        double x = 0;
+        double y = 0;
+
+        // Background
+        gc.setFill(Color.WHEAT);
+        gc.fillRect(x, y, panelWidth, panelHeight);
+
+        // Horizontal center reference
+        double centerX = panelWidth / 2;
+
+        // --- Title ---
+        gc.setFill(Color.BLACK);
+        gc.setFont(new Font("Verdana", 18));
+        gc.fillText("WEATHER", centerX - 45, 40);
+
+        // --- Emoji ---
+        String emoji = "";
+        switch (weather.getCurrent()) {
+            case SUNNY:  emoji = "☀️"; break;
+            case WINDY:  emoji = "🌬️"; break;
+            case RAINY:  emoji = "🌧️"; break;
+            case CLOUDY: emoji = "☁️"; break;
+        }
+
+        gc.setFont(new Font("Verdana", 50));
+        gc.fillText(emoji, centerX - 25, 100);
+
+        // --- Condition name ---
+        gc.setFont(new Font("Verdana", 18));
+        gc.fillText(weather.getCurrent().toString(), centerX - 45, 150);
+
+        // --- Effect summary ---
+        gc.setFont(new Font("Verdana", 12));
+        switch (weather.getCurrent()) {
+            case SUNNY:
+                gc.fillText("Solar ↑↑ | Wind ↔ | Hydro ↓", centerX - 80, 190);
+                break;
+            case WINDY:
+                gc.fillText("Wind ↑↑ | Hydro ↑ | Solar ↔", centerX - 80, 190);
+                break;
+            case RAINY:
+                gc.fillText("Hydro ↑↑ | Solar ↓ | Wind ↔", centerX - 80, 190);
+                break;
+            case CLOUDY:
+                gc.fillText("Solar ↓↓ | Wind ↔ | Hydro ↔", centerX - 80, 190);
+                break;
+        }
+
+        // Border
+        gc.setStroke(Color.SADDLEBROWN);
+        gc.strokeRect(x, y, panelWidth, panelHeight);
+    }
+
+
     private void drawHUD(GraphicsContext gc) {
         // Clear HUD background area
         gc.setFill(Color.WHEAT); // or whatever your main background color is
-        gc.fillRect(GRID_WIDTH * TILE_SIZE, 0, 300, GRID_HEIGHT * TILE_SIZE);
+        gc.fillRect(SIDE_PANEL_WIDTH + GRID_WIDTH * TILE_SIZE, 0, SIDE_PANEL_WIDTH, GRID_HEIGHT * TILE_SIZE);
         double barWidth = 200;
-        double barX = GRID_WIDTH * TILE_SIZE + 50; // places it beside grid
+        double barX = SIDE_PANEL_WIDTH + GRID_WIDTH * TILE_SIZE + 30; // places it beside grid
         double baseY = 300;
+        double y = 200;
 
         gc.setFill(Color.BLACK);
-        gc.setFont(new Font("Verdana", 20));
+        gc.setFont(new Font("Verdana", 14));
+        gc.fillText("👋 Welcome, " + currentUser, barX, baseY - 60);
+
+
+        gc.setFill(Color.BLACK);
+        gc.setFont(new Font("Verdana", 17));
         gc.fillText("ISLAND GRID STATUS:", barX, baseY-30);
 
         gc.setFont(new Font("Verdana", 12));
@@ -201,7 +321,7 @@ public class GameView {
         gc.setFill(Color.GRAY);
         gc.fillRect(barX, baseY, barWidth, 15);
 
-        double supplyRatio = energyManager.getEnergySupply() / 150.0;
+        double supplyRatio = energyManager.getEnergySupply() / 300.0;
         if (energyManager.getEnergySupply() > energyManager.getEnergyDemand() + 20) {
             gc.setFill(Color.RED);
         } else {
@@ -209,8 +329,9 @@ public class GameView {
         }
         gc.fillRect(barX, baseY, Math.min(supplyRatio * barWidth, barWidth), 15);
 
-        gc.setFill(Color.BLACK);
-        gc.fillText(String.format("%d", energyManager.getEnergySupply()), barX + barWidth + 10, baseY + 12);
+        gc.setFill(Color.WHITE);
+        gc.fillText(String.format("%d", energyManager.getEnergySupply()), barX + barWidth - 20, baseY + 12);
+        y += 50;
 
 
         // === Energy Demand Bar ===
@@ -224,9 +345,9 @@ public class GameView {
         gc.setFill(Color.LIGHTBLUE);
         gc.fillRect(barX, baseY + 45, Math.min(demandRatio * barWidth, barWidth), 15);
 
-        gc.setFill(Color.BLACK);
-        gc.fillText(String.format("%d", energyManager.getEnergyDemand()), barX + barWidth + 10, baseY + 57);
-
+        gc.setFill(Color.WHITE);
+        gc.fillText(String.format("%d", energyManager.getEnergyDemand()), barX + barWidth - 20, baseY + 57);
+        y += 50;
 
         // === Battery Bar ===
         gc.setFill(Color.BLACK);
@@ -247,6 +368,7 @@ public class GameView {
         gc.setFill(Color.WHITE);
         gc.fillText(String.format("%d / %d", energyManager.getBatteryLevel(),
         energyManager.getBatteryCapacity()), barX + barWidth - 60, baseY + 97);
+        y += 50;
 
 
         // === Pollution Bar ===
@@ -259,26 +381,34 @@ public class GameView {
         gc.setFill(Color.BLACK);
         gc.fillRect(barX, baseY + 125, Math.min(pollutionRatio * barWidth, barWidth), 15);
 
-        gc.setFill(Color.BLACK);
-        gc.fillText(String.format("%.0f%%", pollutionRatio * 100), barX + barWidth + 10, baseY + 137);
+        gc.setFill(Color.WHITE);
+        gc.fillText(String.format("%.0f%%", pollutionRatio * 100), barX + barWidth - 20, baseY + 137);
+        y += 50;
 
 
         // === Alerts ===
         if (energyManager.isPowerCrisis()) {
             gc.setFill(Color.RED);
             gc.fillText("⚠️ Power Crisis!", barX, baseY + 170);
+            y += 20;
         }
         if (energyManager.isOvercharged()) {
             gc.setFill(Color.RED);
             gc.fillText("⚡ Overcharged!", barX, baseY + 190);
+            y += 20;
         }
     }
 
     private void draw() {
         gc.setFill(Color.WHEAT); 
-        gc.fillRect(0, 0, GRID_WIDTH * TILE_SIZE, GRID_HEIGHT * TILE_SIZE);
+        gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
+        drawWeatherHUD(gc);
+
+        gc.save();
+        gc.translate(SIDE_PANEL_WIDTH, 0);  // shift grid to the right
         grid.draw(gc);
+        gc.restore();
 
         // Draw the current piece
         if (!gameOver && currentPiece != null) {
@@ -288,7 +418,7 @@ public class GameView {
             for (int i = 0; i < shape.length; i++) {
                 for (int j = 0; j < shape[i].length; j++) {
                     if (shape[i][j] == 1) {
-                        int drawX = (currentPiece.getX() + j) * TILE_SIZE;
+                        int drawX = SIDE_PANEL_WIDTH + (currentPiece.getX() + j) * TILE_SIZE;
                         int drawY = (currentPiece.getY() + i) * TILE_SIZE;
                         gc.fillRect(drawX, drawY, TILE_SIZE, TILE_SIZE);
                         gc.setStroke(Color.BLACK);
@@ -299,25 +429,33 @@ public class GameView {
         }
         drawHUD(gc);
         drawNextPiece(gc);
+
+       /* gc.setStroke(Color.RED);
+        gc.setLineWidth(2);
+        gc.strokeRect(SIDE_PANEL_WIDTH, 0, GRID_WIDTH * TILE_SIZE, GRID_HEIGHT * TILE_SIZE); // grid outline
+
+        gc.setStroke(Color.BLUE);
+        gc.strokeRect(0, 0, canvas.getWidth(), canvas.getHeight()); // full canvas outline*/
     }
 
     private void drawNextPiece(GraphicsContext gc) {
         if (nextPiece == null) return;
 
-        double panelX = GRID_WIDTH * TILE_SIZE + 50;
+        double panelX = SIDE_PANEL_WIDTH + GRID_WIDTH * TILE_SIZE + 80;
         double panelY = 40; // top of HUD area
 
         gc.setFill(Color.BLACK);
-        gc.setFont(new Font("Verdana", 20));
-        gc.fillText("Next Piece:", panelX, panelY);
+        gc.setFont(new Font("Verdana", 17));
+        gc.fillText("NEXT PIECE:", panelX, panelY);
 
         int[][] shape = nextPiece.getShape();
         gc.setFill(nextPiece.getColor());
+        
 
         for (int i = 0; i < shape.length; i++) {
             for (int j = 0; j < shape[i].length; j++) {
                 if (shape[i][j] == 1) {
-                    int drawX = (int) (panelX + j * TILE_SIZE);
+                    int drawX = (int) (panelX + 20 + j * TILE_SIZE);
                     int drawY = (int) (panelY + 20 + i * TILE_SIZE);
                     gc.fillRect(drawX, drawY, TILE_SIZE, TILE_SIZE);
                     gc.setStroke(Color.BLACK);
@@ -330,6 +468,13 @@ public class GameView {
 
     public void setGameOver(boolean gameOver) {
         this.gameOver = true;
+        Audio.playEffect("blackout.wav");
+        Audio.stopMusic();
         grid.triggerGameOverMessage();
     }
+
+    public void setCurrentUser(String username) {
+        this.currentUser = username;
+    }
+
 }

@@ -78,7 +78,7 @@ public class Piece {
                 {1, 1, 1},
                 {0, 1, 0}
             }, Color.YELLOW);
-            
+
             case "wind":
                  return new Piece("Wind", new int[][]{
                 {1, 1}

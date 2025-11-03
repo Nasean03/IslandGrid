@@ -6,11 +6,16 @@ import javafx.stage.Stage;
 public class Main extends Application {
     @Override
     public void start(Stage primaryStage) {
-        GameView game = new GameView();
-        game.start(primaryStage);
+        // Start with the login screen first
+        LoginView login = new LoginView();
+        try {
+            login.start(primaryStage);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) {
-        launch(args);
+        launch(args); // Launch JavaFX application
     }
 }

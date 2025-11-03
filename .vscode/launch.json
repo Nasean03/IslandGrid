@@ -1,24 +1,43 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "LoginView",
+      "request": "launch",
+      "mainClass": "com.islandgrid.LoginView",
+      "projectName": "IslandGrid_609e8ca4",
+      "vmArgs": "--module-path \"C:\\javafx-sdk-21.0.9\\lib\" --add-modules javafx.controls,javafx.fxml,javafx.media"
+    },
+    {
+      "type": "java",
+      "name": "Login",
+      "request": "launch",
+      "mainClass": "com.islandgrid.Login",
+      "projectName": "IslandGrid_609e8ca4",
+      "vmArgs": "--module-path \"C:\\javafx-sdk-21.0.9\\lib\" --add-modules javafx.controls,javafx.fxml,javafx.media"
+    },
+    {
+      "type": "java",
+      "name": "TestConnection",
+      "request": "launch",
+      "mainClass": "com.islandgrid.TestConnection",
+      "projectName": "IslandGrid_609e8ca4"
+    },
+    {
+      "type": "java",
+      "name": "Run IslandGrid",
+      "request": "launch",
+      "mainClass": "com.islandgrid.Main",
+      "vmArgs": "--module-path \"C:\\javafx-sdk-21.0.9\\lib\" --add-modules javafx.controls,javafx.fxml,javafx.media",
+      "classPaths": [
+        "${workspaceFolder}/bin",
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/src/resources",
+        "${workspaceFolder}/lib/mysql-connector-j-9.5.0.jar"
+      ],
+      "preLaunchTask": "Build IslandGrid"
+    }
 
-        {
-            "type": "java",
-            "name": "Current File",
-            "request": "launch",
-            "mainClass": "${file}"
-        },
-        {
-            "type": "java",
-            "name": "Main",
-            "request": "launch",
-            "mainClass": "com.islandgrid.Main",
-            "projectName": "IslandGrid_609e8ca4",
-            "vmArgs": "--module-path \"C:\\javafx-sdk-21.0.9\\lib\" --add-modules javafx.controls,javafx.fxml"
-
-        }
-    ]
+  ]
 }

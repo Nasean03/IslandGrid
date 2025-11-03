@@ -1,0 +1,22 @@
+# Build outputs
+target/
+release/
+runtime/
+bin/
+lib/
+IslandGrid/
+*.class
+*.jar
+*.exe
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+.classpath
+.project
+
+# OS files
+.DS_Store
+Thumbs.db

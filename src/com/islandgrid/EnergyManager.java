@@ -13,10 +13,11 @@ public class EnergyManager {
     private Grid grid;
     private GameView gameView;
     private boolean pollutionLevelHigh;
+    private Weather weather;
 
-    private int demandCounter = 0;     // counts how often to update demand
-    //private double demandBase = 70;     
-    //private double demandElasticity = 0.4; // how strongly demand reacts to supply
+
+    private int demandCounter = 0;    
+    private boolean alarmPlayed = false; 
 
     private static final int DEMAND_UPDATE_INTERVAL = 1;  
     private static final int DEMAND_MIN = 40;
@@ -43,25 +44,33 @@ public class EnergyManager {
     }
 
 
-    public void addSupply(String type) {
-        System.out.println("addSupply() called on EnergyManager instance: " + System.identityHashCode(this));
+    public void addSupply(String type, Weather weather) {
+        //System.out.println("addSupply() called on EnergyManager instance: " + System.identityHashCode(this));
         type = type.toLowerCase();
-        double efficiency = 1.0 - (pollutionLevel / 100.0) * 0.3; // up to -30% efficiency loss
+        double efficiency = 1.0 - (pollutionLevel / 100.0) * 0.3; // up to -30% efficiency los
+        double multiplier = 1.0;
+
+        // apply weather multiplier safely
+        if (weather != null) {
+            multiplier = weather.getMultiplier(type);
+        }
+
+        double finalMultiplier =  efficiency * multiplier;
 
         switch (type) {
             case "solar":
-                energySupply += (int)(10 * efficiency);
-                batteryLevel += (int)(5 * efficiency);
+                energySupply += (int)(10 * finalMultiplier);
+                batteryLevel += (int)(5 * finalMultiplier);
                 break;
 
             case "wind":
-                energySupply += (int)(8 * efficiency);
-                batteryLevel += (int)(3 * efficiency);
+                energySupply += (int)(8 * finalMultiplier);
+                batteryLevel += (int)(3 * finalMultiplier);
                 break;
 
             case "hydro":
-                energySupply += (int)(12 * efficiency);
-                batteryLevel += (int)(4 * efficiency);
+                energySupply += (int)(12 * finalMultiplier);
+                batteryLevel += (int)(4 * finalMultiplier);
                 break;
 
             case "battery":
@@ -118,6 +127,20 @@ public class EnergyManager {
         }
     } // checks if you have exceeded safe energy levels
 
+    private void checkBatteryDegradation() {
+        // Battery is within 30 of its max capacity (unsafe zone)
+        if (batteryLevel > batteryCapacity - 30) {
+            // Gradual self-discharge
+            batteryLevel -= 2;
+
+            // Slow long-term wear
+            if (Math.random() < 0.2) { // 20% chance per tick
+                batteryCapacity = Math.max(batteryCapacity - 1, 50); 
+            }
+            pollutionLevel = Math.min(pollutionLevel + 1, 100);
+        } 
+    }
+
     //getter methods
     public int getEnergySupply() { return energySupply; }
     public int getEnergyDemand() { return energyDemand; }
@@ -164,6 +187,7 @@ public class EnergyManager {
 
         checkCrisis();
         checkOvercharged();
+        checkBatteryDegradation();
     }
 
     public void triggerBlackout() {
@@ -183,6 +207,17 @@ public class EnergyManager {
 
     public void pollutionAlert() {
         int stage = getPollutionStage(); 
+
+        // Trigger alarm once when pollution gets high (stage ≥ 6)
+        if (stage >= 6 && stage < 10) {
+            if (!alarmPlayed) {
+                Audio.playEffect("alarm.wav");
+                alarmPlayed = true;
+            }
+        } else {
+            // Reset flag if pollution drops below warning level
+            alarmPlayed = false;
+        }
 
         if (stage >= 10) {
             if (gameView != null) {
