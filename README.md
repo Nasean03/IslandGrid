@@ -2,7 +2,7 @@
 [![GitHub Repo](https://img.shields.io/badge/GitHub-IslandGrid-181717?style=flat&logo=github)](https://github.com/Nasean03/IslandGrid)
 
 **IslandGrid** is a JavaFX-based simulation game that challenges players to balance renewable and non-renewable energy sources on an island grid.  
-Inspired by Tetris-style mechanics, the game blends puzzle logic with environmental sustainability — encouraging smarter energy decisions and awareness of pollution and storage dynamics.
+Inspired by Tetris-style mechanics, the game blends puzzle logic with environmental sustainability, encouraging smarter energy decisions and awareness of pollution and storage dynamics.
 
 ---
 
