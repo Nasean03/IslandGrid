@@ -94,7 +94,9 @@ public class Grid {
         gc.fillRect(0, 0, cols * TILE_SIZE, rows * TILE_SIZE);
 
         if (showGameOverMessage) {
-             gc.setFill(Color.rgb(255, 200, 200));
+            gc.setFill(Color.rgb(0, 0, 0, 0.6));   // ✅ dark overlay
+            gc.fillRect(0, 0, cols * TILE_SIZE, rows * TILE_SIZE);
+            gc.setFill(Color.rgb(255, 200, 200));
             gc.setFont(new Font("Verdana", 30));
             gc.fillText("GAME OVER - BLACKOUT", TILE_SIZE * 5-1, TILE_SIZE * 7-1);
             gc.setFill(Color.RED);
