@@ -150,6 +150,18 @@ public class InstructionsView extends Application {
         layout.setPadding(new Insets(20));
         layout.setStyle("-fx-background-color: wheat; -fx-alignment: center;");
 
+        Button backButton = new Button("⬅ Back to Menu");
+        backButton.setOnAction(e -> {
+            WelcomeMenu menu = new WelcomeMenu();
+            try {
+                menu.start(new Stage());
+                stage.close();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+        
+        layout.getChildren().add(backButton);
         Scene scene = new Scene(layout, 700, 620);
         stage.setScene(scene);
         stage.setTitle("IslandGrid Instructions");

@@ -1,22 +1,30 @@
-# Build outputs
-target/
-release/
-runtime/
-bin/
-lib/
-#IslandGrid/
+# Java
 *.class
 *.jar
 *.exe
-*.log
 
-# IDE files
+# Maven
+target/
+
+# Build output
+bin/
+release/
+runtime/
+IslandGrid/runtime/
+IslandGrid/app/
+
+# IDE
 .vscode/
-.idea/
-*.iml
 .classpath
 .project
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
+
+# Logs / temp
+*.log
+
+# User data
+users.txt
+user.txt

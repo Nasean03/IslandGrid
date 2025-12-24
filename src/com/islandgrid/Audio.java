@@ -12,7 +12,7 @@ public class Audio {
 
     // Play short .wav effects
     public static void playEffect(String name) {
-        URL resource = Audio.class.getResource("/resources/sounds/" + name);
+        URL resource = Audio.class.getResource("/sounds/" + name);
         if (resource != null) {
             AudioClip clip = new AudioClip(resource.toExternalForm());
             clip.setVolume(effectVolume);
@@ -24,7 +24,7 @@ public class Audio {
 
     // Play or loop background music
     public static void playMusic(String name, boolean loop) {
-        URL resource = Audio.class.getResource("/resources/sounds/" + name);
+        URL resource = Audio.class.getResource("/sounds/" + name);
         if (resource != null) {
             if (bgmPlayer != null) bgmPlayer.stop();
             Media media = new Media(resource.toExternalForm());

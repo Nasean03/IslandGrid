@@ -12,6 +12,7 @@ public class LoginView extends Application {
 
     private static final String REMEMBER_FILE = "user.txt";
 
+    
     @Override
     public void start(Stage stage) {
         Label titleLabel = new Label("🔋 Island Grid Login");
@@ -33,6 +34,18 @@ public class LoginView extends Application {
         layout.setPadding(new Insets(25));
         layout.setStyle("-fx-background-color: wheat; -fx-alignment: center;");
 
+        Button backButton = new Button("⬅ Back to Menu");
+        backButton.setOnAction(e -> {
+            WelcomeMenu menu = new WelcomeMenu();
+            try {
+                menu.start(new Stage());
+                stage.close();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        layout.getChildren().add(backButton);
         Scene scene = new Scene(layout, 350, 320);
         stage.setScene(scene);
         stage.setTitle("Island Grid Login");
@@ -55,6 +68,9 @@ public class LoginView extends Application {
                 messageLabel.setText("✅ Login successful!");
                 messageLabel.setStyle("-fx-text-fill: green;");
 
+                WelcomeMenu.loggedInUser = username;
+
+                
                 // Save username if 'Remember me' checked
                 if (rememberCheck.isSelected()) {
                     try (BufferedWriter bw = new BufferedWriter(new FileWriter(REMEMBER_FILE))) {

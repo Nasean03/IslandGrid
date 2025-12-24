@@ -7,9 +7,9 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) {
         // Start with the login screen first
-        LoginView login = new LoginView();
+        WelcomeMenu menu = new WelcomeMenu();
         try {
-            login.start(primaryStage);
+            menu.start(primaryStage);
         } catch (Exception e) {
             e.printStackTrace();
         }

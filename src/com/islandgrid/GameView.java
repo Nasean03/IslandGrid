@@ -7,6 +7,12 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.animation.AnimationTimer;
 import com.islandgrid.Audio;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.layout.*;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+
 //import javafx.scene.input.KeyCode;
 
 
@@ -21,9 +27,9 @@ public class GameView {
     private boolean paused = false;
     private Weather weather;
     private Weather.Condition lastWeather = null;
+
+
     private String currentUser = "Guest";
-
-
 
     private static final int TILE_SIZE = 40; // size of one grid cell
     private static final int GRID_WIDTH = 20; 
@@ -51,9 +57,36 @@ public class GameView {
         currentPiece.setY(2);
 
       
+       // Group root = new Group();
+        //root.getChildren().add(canvas);
+        //Scene scene = new Scene(root, totalWidth, GRID_HEIGHT * TILE_SIZE, Color.WHEAT);
+        // --- UI Controls: Instructions + Menu ---
+        Button instructionsBtn = new Button("📘 Instructions");
+        Button menuBtn = new Button("🏠 Main Menu");
+        instructionsBtn.setStyle("-fx-font-size: 14px; -fx-min-width: 180px;");
+        menuBtn.setStyle("-fx-font-size: 14px; -fx-min-width: 180px;");
+
+        // === Layout: Canvas + Buttons under Weather HUD ===
+        StackPane canvasWrapper = new StackPane(canvas);
+
+        // VBox to hold weather area and buttons aligned vertically
+        VBox weatherAndButtons = new VBox(25);
+        weatherAndButtons.setAlignment(Pos.TOP_CENTER);
+        weatherAndButtons.setPadding(new Insets(380, 0, 0, 40)); 
+        // ↑ adjust this value (≈ 360–400) until buttons line up just under HUD title
+
+        // Add buttons into that VBox
+        weatherAndButtons.getChildren().addAll(instructionsBtn, menuBtn);
+
+        // Group both the canvas and the button panel so canvas remains drawn correctly
         Group root = new Group();
-        root.getChildren().add(canvas);
+        root.getChildren().addAll(canvas, weatherAndButtons);     
+
         Scene scene = new Scene(root, totalWidth, GRID_HEIGHT * TILE_SIZE, Color.WHEAT);
+        stage.setScene(scene);
+        stage.setTitle("Island Grid - Renewable Puzzle");
+        stage.show();
+
         stage.setScene(scene);
         stage.setTitle("Island Grid - Renewable Puzzle");
         stage.show();
@@ -79,6 +112,25 @@ public class GameView {
                 draw();
             }
         }.start();
+
+        // --- Button Actions ---
+        instructionsBtn.setOnAction(e -> {
+            paused = true;
+            showInGameInstructions(); // our simple pop-up
+        });
+
+
+    menuBtn.setOnAction(e -> {
+        paused = true;
+        WelcomeMenu menu = new WelcomeMenu();
+        try {
+            menu.start(new Stage());
+            stage.close();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    });
+
 
 
         //input handling
@@ -430,6 +482,15 @@ public class GameView {
         drawHUD(gc);
         drawNextPiece(gc);
 
+        if (paused) {
+            gc.setFill(Color.rgb(0, 0, 0, 0.4)); // semi-transparent tint
+            gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+            gc.setFill(Color.RED);
+            gc.setFont(new Font("Verdana", 30));
+            gc.fillText("PAUSED", canvas.getWidth() / 2 - 70, canvas.getHeight() / 2);
+        }
+
+
        /* gc.setStroke(Color.RED);
         gc.setLineWidth(2);
         gc.strokeRect(SIDE_PANEL_WIDTH, 0, GRID_WIDTH * TILE_SIZE, GRID_HEIGHT * TILE_SIZE); // grid outline
@@ -476,5 +537,41 @@ public class GameView {
     public void setCurrentUser(String username) {
         this.currentUser = username;
     }
+
+    private void showInGameInstructions() {
+        Stage infoStage = new Stage();
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(20));
+        layout.setAlignment(Pos.TOP_LEFT);
+        layout.setStyle("-fx-background-color: wheat;");
+
+        Label title = new Label("📘 Island Grid — How to Play");
+        title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold;");
+
+        Label content = new Label(
+            "⚙️ Controls:\n" +
+            "→  Move Right\n" +
+            "←  Move Left\n" +
+            "↓  Drop Faster\n" +
+            "↑  Rotate Clockwise\n" +
+            "Z  Rotate Counter-Clockwise\n" +
+            "P  Pause / Resume\n" +
+            "R  Restart Game\n\n" +
+            "💡 Energy Rules:\n" +
+            "• Match supply and demand to stay stable.\n" +
+            "• Solar works best in ☀️, Wind in 🌬️, Hydro in 🌧️.\n" +
+            "• Overcharge ⚡ damages the battery.\n" +
+            "• Pollution too high → blackout!\n\n" +
+            "Close this window to continue playing."
+        );
+        content.setStyle("-fx-font-size: 14px;");
+
+        layout.getChildren().addAll(title, content);
+        Scene scene = new Scene(layout, 420, 420);
+        infoStage.setScene(scene);
+        infoStage.setTitle("Game Instructions");
+        infoStage.show();
+    }
+
 
 }
